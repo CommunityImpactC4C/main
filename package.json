@@ -6,8 +6,8 @@
     "node": ">=20.9.0"
   },
   "scripts": {
-    "dev": "next dev",
-    "build": "next build",
+    "dev": "cd src && next dev",
+    "build": "cd src && next build",
     "start": "next start",
     "lint": "eslint",
     "test": "vitest run --config vitest.config.mts",
