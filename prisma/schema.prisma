@@ -13,6 +13,24 @@ datasource db {
 
 
 model User {
-  id    Int    @id @default(autoincrement()) 
-  email String @unique
+  UserID    String    @id @default(uuid()) 
+  FName String 
+  LName String
+  Email String @unique
+  College String?
+  xp Int @default(0)
+  Level Int @default(0)
+  record Record?
 }
+
+model Record {
+  RecID String @id @default(uuid())
+  DailyQuestCompleted Int @default(0)
+  DailyQuestAssign Int @default(0)
+  QuestsCompleted Int @default(0)
+  BossQuestCompleted Int @default(0)
+  user User @relation(fields: [UserRec], references: [UserID])
+  UserRec String @unique
+}
+
+
