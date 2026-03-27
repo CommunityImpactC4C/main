@@ -1,0 +1,217 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Get a free hosted Postgres database in seconds: `npx create-db`
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+}
+
+
+enum Days {
+Monday
+Teusday
+Wednesday
+Thursday
+Friday
+Saturday
+Sunday
+}
+
+enum Worktype {
+Environmental
+Food
+Homeless
+}
+
+enum TimeSlots {
+EarlyMorning
+LateMorning
+Afternoon
+EarlyEvening
+LateEvening
+}
+
+enum Notification {
+Text
+Email
+Push
+}
+
+enum DifficultyScale { /// For now, change it to something more fun.
+easy
+medium
+hard
+}
+
+enum QuestType {
+Daily
+Normal
+}
+
+enum Months {
+JANUARY
+FEBRUARY
+MARCH
+APRIL
+MAY
+JUNE
+JULY
+AUGUST
+SEPTEMBER
+OCTOBER
+NOVEMBER
+DECEMBER
+}
+
+model User {
+  UserID    String    @id @default(uuid()) 
+  FName String 
+  LName String
+  Email String @unique
+  College String?
+  xp Int @default(0)
+  Level Int @default(0)
+  record Records?
+  preference Preference?
+  trophies UserTrophies[]
+  following Friends[] @relation("Following")
+  follower Friends[] @relation("Follower")
+  setting Settings?
+  quests UserQuestAssign[]
+  rbquests RBUserQuestAssign[]
+  reports Reports[]
+}
+
+model Records {
+  RecID String @id @default(uuid())
+  DailyQuestCompleted Int @default(0)
+  DailyQuestAssign Int @default(0)
+  QuestsCompleted Int @default(0)
+  BossQuestCompleted Int @default(0)
+  UserRec User @relation(fields: [UserRecID], references: [UserID])
+  UserRecID String @unique
+}
+
+
+model Preference {
+  PrefID String @id @default(uuid())
+  PrefDay Days[] @default([])
+  WorkType Worktype[] @default([])
+  DistanceCommute Int?
+  Location String?
+  PrefTime TimeSlots[] @default([])
+  UserPref User @relation(fields: [UserPrefID], references: [UserID])
+  UserPrefID String @unique
+}
+
+
+model UserTrophies {
+  UserTrophiesID String @id @default(uuid())
+  earnedDate DateTime @default(now())
+  UserTroph User @relation(fields: [UserTrophID], references: [UserID])
+  UserTrophID String 
+  trophies Trophies @relation(fields: [trophiesID],references: [TrophieID])
+  trophiesID String 
+  @@unique([UserTrophID, trophiesID])
+}
+
+model Trophies {
+  TrophieID String @id @default(uuid())
+  TrophieName String @unique
+  XPRequired Int 
+  ImageUrl String
+  TrophieAssign UserTrophies[]
+}
+
+model Friends {
+  FriendID String @id @default(uuid())
+  FriendsCreated DateTime @default(now())
+  Following User @relation("Following",fields: [FollowingID], references: [UserID])
+  FollowingID String 
+  Follower User @relation("Follower",fields: [FollowerID], references: [UserID])
+  FollowerID String 
+  @@unique([FollowingID, FollowerID])
+}
+
+model Settings {
+  SettingsID String @id @default(uuid())
+  UserSetting User @relation(fields: [UserSettingID], references: [UserID])
+  UserSettingID String @unique
+}
+
+model UserQuestAssign {
+  UserQuestAssignID String @id @default(uuid())
+  AssignedDate DateTime @default(now())
+  Completed Boolean @default(false)
+  CompletedTime DateTime?
+  UserQuest User @relation(fields: [UserQuestID], references: [UserID])
+  UserQuestID String 
+  QuestUser Quests @relation(fields: [QuestUserID],references: [QuestID])
+  QuestUserID String 
+}
+
+
+model Quests {
+  QuestID String @id @default(uuid())
+  Name String
+  EstTime Int?
+  XP Int
+  Desc String
+  Diff DifficultyScale
+  Weight Int
+  Type QuestType
+  StartMonth Months
+  EndMonth Months
+  QuestAssign UserQuestAssign[]
+  ReportQuest Reports[]
+}
+
+model RBUserQuestAssign {
+  UserQuestAssignID String @id @default(uuid())
+  RSVP DateTime @default(now())
+  Attended Boolean @default(false)
+  AttendedTime DateTime?
+  RBUserQuest User @relation(fields: [RBUserQuestID], references: [UserID])
+  RBUserQuestID String 
+  RBQuestUser RBQuests @relation(fields: [RBQuestUserID],references: [RBQuestID])
+  RBQuestUserID String 
+}
+
+
+model RBQuests {
+  RBQuestID String @id @default(uuid())
+  Name String
+  EstTime Int?
+  XP Int
+  Desc String
+  Weight Int
+  Start DateTime
+  RBQuestOrg RBOrg @relation(fields: [RBQuestOrgID],references: [RBOrgID])
+  RBQuestOrgID String 
+  RBQuestAssign RBUserQuestAssign[]
+}
+
+model RBOrg {
+  RBOrgID String @id @default(uuid())
+  Name String
+  Desc String
+  Organizing RBQuests[]
+}
+
+model Reports {
+  ReportID String @id @default(uuid())
+  ReportCreatedAt DateTime @default(now())
+  UserReport User @relation(fields: [UserReportID], references: [UserID])
+  UserReportID String 
+  UniqueReport Boolean @default(true)
+  ReportQuest Quests? @relation(fields: [ReportQuestID], references: [QuestID])
+  ReportQuestID String? 
+}
+
+
+
