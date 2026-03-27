@@ -84,7 +84,7 @@ model User {
   setting Settings?
   quests UserQuestAssign[]
   rbquests RBUserQuestAssign[]
-
+  reports Reports[]
 }
 
 model Records {
@@ -168,6 +168,7 @@ model Quests {
   StartMonth Months
   EndMonth Months
   QuestAssign UserQuestAssign[]
+  ReportQuest Reports[]
 }
 
 model RBUserQuestAssign {
@@ -190,6 +191,8 @@ model RBQuests {
   Desc String
   Weight Int
   Start DateTime
+  RBQuestOrg RBOrg @relation(fields: [RBQuestOrgID],references: [RBOrgID])
+  RBQuestOrgID String 
   RBQuestAssign RBUserQuestAssign[]
 }
 
@@ -197,5 +200,18 @@ model RBOrg {
   RBOrgID String @id @default(uuid())
   Name String
   Desc String
+  Organizing RBQuests[]
 }
+
+model Reports {
+  ReportID String @id @default(uuid())
+  ReportCreatedAt DateTime @default(now())
+  UserReport User @relation(fields: [UserReportID], references: [UserID])
+  UserReportID String 
+  UniqueReport Boolean @default(true)
+  ReportQuest Quests? @relation(fields: [ReportQuestID], references: [QuestID])
+  ReportQuestID String? 
+}
+
+
 
