@@ -33,7 +33,7 @@ jobs:
       - name: Installing prisma client
         run: npx prisma generate
         env:
-          DATABASE_URL: postgresql://dummy:dummy@localhost:5432/dummy
+          DATABASE_URL: postgresql://testingforthisCI:testingforthisCI@localhost:5432/testingforthisCI
 
       - name: Type check
         run: npm run typecheck

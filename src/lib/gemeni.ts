@@ -1,17 +1,28 @@
 import { GoogleGenAI } from "@google/genai";
-import * as dotenv from 'dotenv';
-dotenv.config();
+
+if (!process.env.GEMINI_API_KEY) {
+  throw new Error("Missing GEMINI_API_KEY in .env file");
+}
 
 // The client gets the API key from the environment variable `GEMINI_API_KEY`.
 const apiKey = process.env.GEMINI_API_KEY
+
 const ai = new GoogleGenAI({apiKey});
 
-async function main() {
+
+
+async function Gemeni(prompt:string) {
   const response = await ai.models.generateContent({
     model: "gemini-3-flash-preview",
-    contents: "Explain how AI works in a few words",
+    contents: prompt,
+    config: {
+      temperature: 0.1,
+      responseMimeType: "application/json",
+      // responseJsonSchema: zodToJsonSchema(recipeSchema),
+    },
   });
-  console.log(response.text);
+  return response;
 }
 
-main();
+
+export {ai, Gemeni}
