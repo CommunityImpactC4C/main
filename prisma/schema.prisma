@@ -3,8 +3,97 @@
 
 // Get a free hosted Postgres database in seconds: `npx create-db`
 
+
+// ==========================================
+// ImpactTrail — Prisma Schema
+// Community service gamification platform
+// Database: Supabase PostgreSQL
+// ==========================================
+
+// --- ENUMS ---
+// Fixed value sets enforced at the database level.
+
+// User availability preferences
+// enum Days { ... }
+
+// Community service categories for quest/preference matching
+// enum Worktype { ... }
+
+// Preferred volunteering time blocks
+// enum TimeSlots { ... }
+
+// How users receive alerts (quest reminders, streak alerts, etc.)
+// enum Notification { ... }
+
+// Quest difficulty — used for both quest definition and user preference matching
+// enum DifficultyScale { ... }
+
+// Quest classification
+// enum QuestType { ... }
+
+// Seasonal availability window for quests
+// enum Months { ... }
+
+// --- CORE USER ---
+
+// User — Central table. Linked to Supabase Auth via UserID (UUID).
+// One-to-one: Records, Preference, Settings
+// Many-to-many: Trophies (via UserTrophies), Quests (via UserQuestAssign),
+//               Boss Quests (via RBUserQuestAssign)
+// Self-relation: Friends (follower/following)
+
+// Records — Tracks a user's lifetime stats (one-to-one with User)
+
+// Preference — User's volunteering preferences for quest matching (one-to-one with User)
+// Gemini uses these to personalize quest assignments.
+
+// Settings — User's app settings like notifications and privacy (one-to-one with User)
+
+// --- SOCIAL ---
+
+// Friends — Self-referencing join table for follower/following relationships.
+// @@unique prevents duplicate follow entries.
+// Named relations ("Following"/"Follower") disambiguate the two User references.
+
+// --- GAMIFICATION ---
+
+// UserTrophies — Join table for many-to-many between User and Trophies.
+// earnedDate auto-records when the trophy was awarded.
+// @@unique prevents a user from earning the same trophy twice.
+
+// Trophies — Trophy definitions. Image stored as URL (hosted in Supabase Storage).
+
+// --- QUESTS ---
+
+// Quests — AI-generated quests from community reports.
+// Weight = priority score (increases when multiple reports flag the same issue).
+// StartMonth/EndMonth = seasonal availability window.
+
+// UserQuestAssign — Join table for many-to-many between User and Quests.
+// Tracks assignment date, completion status, and completion time.
+// CompletedTime is set by app code when Completed is toggled to true.
+
+// --- BOSS QUESTS (RB = Registered Business/Organization) ---
+
+// RBOrg — Partner organizations that host large-scale volunteer events.
+// One-to-many with RBQuests (one org hosts many boss quests).
+
+// RBQuests — Organization-hosted events (beach cleanups, food drives, etc.).
+// Unlike regular quests, these have a specific Start datetime.
+
+// RBUserQuestAssign — Join table for many-to-many between User and RBQuests.
+// RSVP = when user signed up. Attended/AttendedTime track actual participation.
+
+// --- REPORTS ---
+
+// Reports — Community issues submitted by users, processed by Gemini API.
+// UniqueReport = true if this report created a new quest, false if it matched existing.
+// ReportQuest is optional (nullable) — starts null until Gemini processes and links a quest.
+
+
 generator client {
   provider = "prisma-client-js"
+  output   = "../src/generated/prisma"
 }
 
 datasource db {

@@ -29,6 +29,11 @@ jobs:
         run: npm i
         env:
           NODE_ENV: development
+      
+      - name: Installing prisma client
+        run: npx prisma generate
+        env:
+          DATABASE_URL: postgresql://testingforthisCI:testingforthisCI@localhost:5432/testingforthisCI
 
       - name: Type check
         run: npm run typecheck
