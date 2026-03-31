@@ -8,8 +8,8 @@ const pool = new Pool({ connectionString });
 const adapter = new PrismaPg(pool);
 const prisma = new PrismaClient({ adapter });
 
-
 async function main() {
+  await prisma.quests.deleteMany();
   const quests = await prisma.quests.createMany({
     data: [
       {
