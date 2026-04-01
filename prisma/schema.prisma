@@ -251,8 +251,9 @@ model Quests {
   EstTime Int?
   XP Int
   Desc String
-  Diff DifficultyScale
   Weight Int
+  Blurb String
+  Diff DifficultyScale
   Type QuestType
   StartMonth Months
   EndMonth Months
