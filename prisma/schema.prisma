@@ -247,12 +247,13 @@ model UserQuestAssign {
 
 model Quests {
   QuestID String @id @default(uuid())
-  Name String
+  Name String @unique
   EstTime Int?
   XP Int
   Desc String
-  Diff DifficultyScale
   Weight Int
+  Blurb String
+  Diff DifficultyScale
   Type QuestType
   StartMonth Months
   EndMonth Months

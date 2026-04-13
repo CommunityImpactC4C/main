@@ -7,20 +7,16 @@
 // can still be imported without crashing (returns null). The error is thrown
 // only when Gemeni() is actually called, making this CI-safe.
 
-
 // Exports:
 //   ai      — the raw GoogleGenAI client (null if no API key)
 //   Gemeni  — wrapper function with default model and config
-
 
 // Usage:
 //   import { Gemeni } from "@/lib/gemeni";
 //   const response = await Gemeni("your prompt here");
 
-
 // Override defaults:
 //   const response = await Gemeni("prompt", "gemini-2.0-flash", { temperature: 0.5 });
-
 
 // Docs:
 // - Google GenAI SDK: https://www.npmjs.com/package/@google/genai
@@ -30,19 +26,22 @@
 
 import { GoogleGenAI } from "@google/genai";
 
-const ai = process.env.GEMINI_API_KEY ? 
-  new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY }): null;
+const ai = process.env.GEMINI_API_KEY
+  ? new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY })
+  : null;
 
-
-async function Gemeni(prompt:string, model:string = "gemini-3-flash-preview", config:object = {
+async function Gemeni(
+  prompt: string,
+  model: string = "gemini-2.5-flash",
+  config: object = {
     temperature: 0.2,
     responseMimeType: "application/json",
-    },) 
-    {
-    if (!ai) {
-      throw new Error("Missing GEMINI_API_KEY in .env file");
-    }
-    const response = await ai.models.generateContent({
+  },
+) {
+  if (!ai) {
+    throw new Error("Missing GEMINI_API_KEY in .env file");
+  }
+  const response = await ai.models.generateContent({
     model: model,
     contents: prompt,
     config: config,
@@ -50,5 +49,4 @@ async function Gemeni(prompt:string, model:string = "gemini-3-flash-preview", co
   return response;
 }
 
-
-export {ai, Gemeni}
+export { ai, Gemeni };
