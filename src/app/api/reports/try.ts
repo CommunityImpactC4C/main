@@ -12,11 +12,11 @@ async function main() {
   //   take: 3,
   // });
 
-  const AllData = await prisma.quests.findMany();
-  const data = AllData.map((q) => ({ Name: q.Name, Blurb: q.Blurb }));
-  const ExampleData = AllData.slice(2);
-  const JsonData: string = JSON.stringify(data);
-  const JsonExample: string = JSON.stringify(ExampleData);
+  const allData = await prisma.quests.findMany();
+  const data = allData.map((q) => ({ Name: q.Name, Blurb: q.Blurb }));
+  const exampleData = allData.slice(2);
+  const jsonData: string = JSON.stringify(data);
+  const jsonExample: string = JSON.stringify(exampleData);
 
   const MatchSchema = z.object({
     New: z.literal(false),
@@ -72,32 +72,32 @@ async function main() {
     "Northeastern university dining hall has a lot of foodwaste, lets redistribute it";
   const reportText2 =
     "There's a ton of trash and broken bottles piling up at Riverside Park. The benches and walkways are covered in litter. Someone needs to go clean it up.";
-  const GemeniConfig = {
-    systemInstruction: `Here are the existing quests: ${JsonData} 
+  const gemeniConfig = {
+    systemInstruction: `Here are the existing quests: ${jsonData}
     Based on the report given in the prompt,
-    Determine if this matches an existing quest or needs a new one. 
-    If it matches, follow the zod schema and return me just the match and ID of that 
-    If it doesn't match you need to create a new quest for it, 
-    The format of the new quest should match the the json format in the ${JsonExample} 
+    Determine if this matches an existing quest or needs a new one.
+    If it matches, follow the zod schema and return me just the match and ID of that
+    If it doesn't match you need to create a new quest for it,
+    The format of the new quest should match the the json format in the ${jsonExample}
     with some example quests given to guide you in making a new quest,
-    "You MUST include a New field in your response. If the report matches an existing quest, 
+    "You MUST include a New field in your response. If the report matches an existing quest,
     set New: false and MatchedName to the quest name. If it's a new quest, set New: true and fill in all fields."
     `,
     responseMimeType: "application/json",
   };
 
-  const Response = await Gemeni(reportText1, "gemini-2.5-flash-lite", GemeniConfig);
+  const response = await Gemeni(reportText1, "gemini-2.5-flash-lite", gemeniConfig);
 
-  console.log(Response.text);
-  const quest = QuestSchema.parse(JSON.parse(Response.text));
+  console.log(response.text);
+  const quest = QuestSchema.parse(JSON.parse(response.text));
   console.log(typeof quest);
 
   if (quest.New === true) {
     delete quest.New;
     console.log(quest);
-    const NewQuest = await prisma.quests.create({ data: quest });
+    const newQuest = await prisma.quests.create({ data: quest });
   } else {
-    const NewQuest = await prisma.quests.update({
+    const newQuest = await prisma.quests.update({
       where: { Name: quest.MatchedName },
       data: { Weight: { increment: 2 } },
     });

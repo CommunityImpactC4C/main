@@ -51,43 +51,43 @@ const NewQuestSchema = z.object({
 
 const QuestSchema = z.discriminatedUnion("New", [MatchSchema, NewQuestSchema]);
 
-type Quest = z.infer<typeof QuestSchema>
+type Quest = z.infer<typeof QuestSchema>;
 
-async function GetPrismaData() {
-  const AllData = await prisma.quests.findMany();
-  const data = AllData.map((q) => ({ Name: q.Name, Blurb: q.Blurb }));
-  const ExampleData = AllData.slice(2);
-  const JsonData: string = JSON.stringify(data);
-  const JsonExample: string = JSON.stringify(ExampleData);
-  return { JsonData, JsonExample };
+async function getQuestData() {
+  const allData = await prisma.quests.findMany();
+  const questNameBlurb = allData.map((q) => ({ Name: q.Name, Blurb: q.Blurb }));
+  const questFirst3 = allData.slice(2);
+  const jsonQuestNameBlurb: string = JSON.stringify(questNameBlurb);
+  const jsonQuestFirst3: string = JSON.stringify(questFirst3);
+  return { jsonQuestNameBlurb, jsonQuestFirst3 };
 }
 
-async function GemeniRoute(new_quest: string, data: string, example: string) {
-  const GemeniConfig = {
-    systemInstruction: `Here are the existing quests: ${data} 
+async function gemeniNewQuest(newQuest: string, questNameBlurb: string, questFirst3: string) {
+  const gemeniConfig = {
+    systemInstruction: `Here are the existing quests: ${questNameBlurb}
     Based on the report given in the prompt,
-    Determine if this matches an existing quest or needs a new one. 
-    If it matches, follow the zod schema and return me just the match and ID of that 
-    If it doesn't match you need to create a new quest for it, 
-    The format of the new quest should match the the json format in the ${example} 
+    Determine if this matches an existing quest or needs a new one.
+    If it matches, follow the zod schema and return me just the match and ID of that
+    If it doesn't match you need to create a new quest for it,
+    The format of the new quest should match the the json format in the ${questFirst3}
     with some example quests given to guide you in making a new quest,
-    "You MUST include a New field in your response. If the report matches an existing quest, 
+    "You MUST include a New field in your response. If the report matches an existing quest,
     set New: false and MatchedName to the quest name. If it's a new quest, set New: true and fill in all fields."
     `,
     responseMimeType: "application/json",
   };
 
-  const Response = await Gemeni(new_quest, "gemini-2.5-flash", GemeniConfig);
+  const gemeniNewQuestResponse = await Gemeni(newQuest, "gemini-2.5-flash", gemeniConfig);
 
-  return QuestSchema.parse(JSON.parse(Response.text));
+  return QuestSchema.parse(JSON.parse(gemeniNewQuestResponse.text));
 }
 
-async function UpdateSupa(quest: Quest) {
+async function updateSupa(quest: Quest) {
   if (quest.New == true) {
-    const {New,...questData} = quest
-    const NewQuest = await prisma.quests.create({ data: questData });
+    const { New, ...questData } = quest;
+    const newQuest = await prisma.quests.create({ data: questData });
   } else {
-    const NewQuest = await prisma.quests.update({
+    const updatedQuest = await prisma.quests.update({
       where: { Name: quest.MatchedName },
       data: { Weight: { increment: 2 } },
     });
@@ -96,6 +96,17 @@ async function UpdateSupa(quest: Quest) {
 
 export const POST = async (req: Request) => {
   try {
+    const { jsonQuestNameBlurb, jsonQuestFirst3 } = await getQuestData();
+    const { reportText } = await req.json();
+    const newQuestResult = await gemeniNewQuest(reportText, jsonQuestNameBlurb, jsonQuestFirst3);
+    await updateSupa(newQuestResult);
+
+    return NextResponse.json(
+      {
+        msg: "Successfully added in the new quest",
+      },
+      { status: 200 },
+    );
   } catch (error) {
     return NextResponse.json({
       msg: "Failed to process report",
