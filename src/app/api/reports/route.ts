@@ -23,6 +23,8 @@ import prisma from "@/lib/prisma";
 import { NextResponse } from "next/server";
 import { Gemeni } from "@/lib/gemeni";
 import { z } from "zod";
+import {questSchemaObject} from "../../../../types/questSchema"
+import { questPrompt } from "./prompt";
 
 /**
  * Zod Schemas for Gemini Response Validation
@@ -39,45 +41,7 @@ const MatchSchema = z.object({
   MatchedName: z.string(),
 });
 
-const NewQuestSchema = z.object({
-  New: z.literal(true),
-  Name: z.string(),
-  EstTime: z.number(),
-  XP: z.number(),
-  Desc: z.string(),
-  Weight: z.number(),
-  Blurb: z.string(),
-  Diff: z.enum(["easy", "medium", "hard"]),
-  Type: z.enum(["Daily", "Normal"]),
-  StartMonth: z.enum([
-    "JANUARY",
-    "FEBRUARY",
-    "MARCH",
-    "APRIL",
-    "MAY",
-    "JUNE",
-    "JULY",
-    "AUGUST",
-    "SEPTEMBER",
-    "OCTOBER",
-    "NOVEMBER",
-    "DECEMBER",
-  ]),
-  EndMonth: z.enum([
-    "JANUARY",
-    "FEBRUARY",
-    "MARCH",
-    "APRIL",
-    "MAY",
-    "JUNE",
-    "JULY",
-    "AUGUST",
-    "SEPTEMBER",
-    "OCTOBER",
-    "NOVEMBER",
-    "DECEMBER",
-  ]),
-});
+const NewQuestSchema = z.object(questSchemaObject);
 
 const QuestSchema = z.discriminatedUnion("New", [MatchSchema, NewQuestSchema]);
 
@@ -88,15 +52,14 @@ type Quest = z.infer<typeof QuestSchema>;
  *
  * Returns two JSON strings:
  *   - jsonQuestNameBlurb: All quest names + blurbs (for Gemini to match against)
- *   - jsonQuestFirst3: First 3 full quest objects (as format examples for Gemini)
+ *   - jsonFirstThreeQuest: First 3 full quest objects (as format examples for Gemini)
  */
 async function getQuestData() {
-  const allData = await prisma.quests.findMany();
-  const questNameBlurb = allData.map((q) => ({ Name: q.Name, Blurb: q.Blurb }));
-  const questFirst3 = allData.slice(2);
+  const allQuestData = await prisma.quests.findMany();
+  const questNameBlurb = allQuestData.map((q) => ({ Name: q.Name, Blurb: q.Blurb }));
   const jsonQuestNameBlurb: string = JSON.stringify(questNameBlurb);
-  const jsonQuestFirst3: string = JSON.stringify(questFirst3);
-  return { jsonQuestNameBlurb, jsonQuestFirst3 };
+  const jsonFirstThreeQuest: string = JSON.stringify(allQuestData.slice(2));
+  return { jsonQuestNameBlurb, jsonFirstThreeQuest };
 }
 
 /**
@@ -104,7 +67,7 @@ async function getQuestData() {
  *
  * @param newQuest - The user's report text
  * @param questNameBlurb - JSON string of all quest names + blurbs for matching
- * @param questFirst3 - JSON string of example quests for Gemini to follow the format
+ * @param firstThreeQuest - JSON string of example quests for Gemini to follow the format
  * @returns Zod-validated Quest object (either a match or a new quest)
  *
  * Gemini is instructed to:
@@ -115,18 +78,9 @@ async function getQuestData() {
  * The response is validated against QuestSchema (discriminated union) to ensure
  * type safety before passing to updateSupa()
  */
-async function gemeniNewQuest(newQuest: string, questNameBlurb: string, questFirst3: string) {
+async function gemeniNewQuest(newQuest: string, questNameBlurb: string, firstThreeQuest: string) {
   const gemeniConfig = {
-    systemInstruction: `Here are the existing quests: ${questNameBlurb}
-    Based on the report given in the prompt,
-    Determine if this matches an existing quest or needs a new one.
-    If it matches, follow the zod schema and return me just the match and ID of that
-    If it doesn't match you need to create a new quest for it,
-    The format of the new quest should match the the json format in the ${questFirst3}
-    with some example quests given to guide you in making a new quest,
-    "You MUST include a New field in your response. If the report matches an existing quest,
-    set New: false and MatchedName to the quest name. If it's a new quest, set New: true and fill in all fields."
-    `,
+    systemInstruction: questPrompt(questNameBlurb, firstThreeQuest),
     responseMimeType: "application/json",
   };
 
@@ -148,10 +102,10 @@ async function gemeniNewQuest(newQuest: string, questNameBlurb: string, questFir
  */
 async function updateSupa(quest: Quest) {
   if (quest.New == true) {
-    const { New, ...questData } = quest;
-    const newQuest = await prisma.quests.create({ data: questData });
+    const { ...questData } = quest;
+    await prisma.quests.create({ data: questData });
   } else {
-    const updatedQuest = await prisma.quests.update({
+    await prisma.quests.update({
       where: { Name: quest.MatchedName },
       data: { Weight: { increment: 2 } },
     });
@@ -160,9 +114,9 @@ async function updateSupa(quest: Quest) {
 
 export const POST = async (req: Request) => {
   try {
-    const { jsonQuestNameBlurb, jsonQuestFirst3 } = await getQuestData();
+    const { jsonQuestNameBlurb, jsonFirstThreeQuest } = await getQuestData();
     const { reportText } = await req.json();
-    const newQuestResult = await gemeniNewQuest(reportText, jsonQuestNameBlurb, jsonQuestFirst3);
+    const newQuestResult = await gemeniNewQuest(reportText, jsonQuestNameBlurb, jsonFirstThreeQuest);
     await updateSupa(newQuestResult);
 
     return NextResponse.json(
