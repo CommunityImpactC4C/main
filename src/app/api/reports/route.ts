@@ -25,6 +25,7 @@ import { Gemeni } from "@/lib/gemeni";
 import { z } from "zod";
 import { questSchemaObject } from "../../../../types/questSchema";
 import { questPrompt } from "./prompt";
+import { isError } from "node:util";
 
 /**
  * Zod Schemas for Gemini Response Validation
@@ -97,7 +98,7 @@ async function gemeniNewQuest(
     gemeniConfig,
   );
 
-  return QuestSchema.parse(JSON.parse(gemeniNewQuestResponse.text));
+  return QuestSchema.parse(JSON.parse(gemeniNewQuestResponse.text !));
 }
 
 /**
@@ -144,7 +145,7 @@ export const POST = async (req: Request) => {
     return NextResponse.json(
       {
         msg: "Failed to process report",
-        error: error.message,
+        error: error instanceof Error? error.message:String(error),
       },
       { status: 500 },
     );

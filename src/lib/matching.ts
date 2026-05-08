@@ -13,7 +13,7 @@ import Heap from 'heap';
 type DestringifyOptions = {source?: string; sink?: string};
 const SOURCE_NODE = 0;
 type MinCostFlowOptions = {desiredFlow?: number} & DestringifyOptions;
-type BipartiteEdge = {left: string; right: string; weight: number, };
+type BipartiteEdge = {users: string; quests: string; weight: number, questCost: number};
 
 export type Edge<T = number | string> = {
   from: T;
@@ -109,7 +109,7 @@ function cheapestPaths(
   const predecessors: number[] = new Array(numberOfNodes).fill(-1);
 
   while (!queue.empty()) {
-    const home: number = queue.pop();
+    const home:number = queue.pop() !;
     inQueue[home] = false;
     adjacency[home].forEach((neighbor) => {
       if (capacity[home][neighbor] > 0 && leastCosts[neighbor] > leastCosts[home] + cost[home][neighbor]) {
@@ -202,23 +202,24 @@ export function minCostFlow(
 }
 
 
-export function minimumWeightBipartiteMatch(edges: BipartiteEdge[]): BipartiteEdge[] {
-  const leftNodes = edges.map(({left}) => left);
-  const rightNodes = edges.map(({right}) => right);
+export function minimumWeightBipartiteMatch(edges: BipartiteEdge[]){
+  // const leftNodes = edges.map(({users}) => users);
+  const leftNodes = new Set(edges.map(({users}) => users))  // ← [users] is a 1-element array
+  const rightNodes = new Map(edges.map(({quests, questCost}) => [quests, questCost]));
 
-  const middleEdges: Array<Edge<string>> = edges.map(({left, right, weight}) => ({
-    from: left,
-    to: right,
+  const middleEdges: Array<Edge<string>> = edges.map(({users, quests, weight}) => ({
+    from: users,
+    to: quests,
     cost: weight,
     capacity: 1
   }));
-  const sourceEdges = leftNodes.map((name) => ({from: 'SOURCE', to: name, cost: 0, capacity: 3}));
-  const sinkEdges = rightNodes.map((name) => ({to: 'SINK', from: name, cost: 0, capacity: 1}));
-
+  // const sourceEdges = leftNodes.map((name) => ({from: 'SOURCE', to: name, cost: 0, capacity: 3}));
+  const sourceEdges = [...leftNodes.entries()].map(([users]) => ({from: 'SOURCE', to: users, cost: 0, capacity: 3}));
+  const sinkEdges = [...rightNodes.entries()].map(([name, cap]) => ({to: 'SINK', from: name, cost: 0, capacity: cap}));
   const solution = minCostFlow([...sourceEdges, ...middleEdges, ...sinkEdges]);
 
   return solution
     .filter(({from, to, flow}) => flow > 0 && from !== 'SOURCE' && to !== 'SINK')
-    .map(({from, to, cost}) => ({left: from, right: to, weight: cost}));
+    .map(({from, to, cost}) => ({users: from, quests: to, weight: cost}));
 }
 
